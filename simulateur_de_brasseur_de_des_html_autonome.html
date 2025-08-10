@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Simulateur de dés — Bleu+ Minimal</title>
+  <style>
+    /* THEME TOKENS (base fallback) */
+    :root{
+      --bg:#0b0f1a; --surface:#12182b; --text:#e8eef7; --muted:#a7b3cc; --primary:#6ec8ff; --border: rgba(255,255,255,.10);
+      --shadow: 0 10px 24px rgba(0,0,0,.35);
+    }
+
+    /* —— Thèmes BLEU améliorés —— */
+    body[data-theme="classic"]{
+      --bg:#05060e; --surface:#1a1c33; --text:#e7e9ee; --muted:#aab0c0; --primary:#7dd3fc; --border: rgba(255,255,255,.12);
+      background: radial-gradient(1200px 700px at 70% -10%, #1d1f3a 0%, #0b0c17 60%, #05060e 100%);
+    }
+    body[data-theme="classic"] .card{background:linear-gradient(180deg, #1a1c33 0%, #121327 100%)}
+    body[data-theme="classic"] .board{background:
+      radial-gradient(600px 300px at 20% 10%, rgba(125,211,252,.10), transparent 70%),
+      radial-gradient(420px 260px at 80% 90%, rgba(99,102,241,.16), transparent 70%),
+      #0a0c1c}
+
+    body[data-theme="ocean"]{
+      --bg:#061322; --surface:#0c1e33; --text:#e8f6ff; --muted:#9bb9d1; --primary:#5fb6ff; --border: rgba(173,216,230,.18);
+      background: radial-gradient(1200px 800px at 50% -10%, #0e2240 0%, #061322 70%);
+    }
+    body[data-theme="ocean"] .card{background:linear-gradient(180deg,#0e1f36 0%, #0a1727 100%)}
+    body[data-theme="ocean"] .board{background:
+      radial-gradient(700px 320px at 15% 10%, rgba(95,182,255,.18), transparent 70%),
+      radial-gradient(520px 280px at 85% 85%, rgba(56,189,248,.16), transparent 70%),
+      #07121f}
+
+    body[data-theme="azure"]{
+      --bg:#070b14; --surface:#0f172a; --text:#e7f1ff; --muted:#9fb3d1; --primary:#60a5ff; --border: rgba(96,165,255,.25);
+      background: radial-gradient(1000px 700px at 70% -10%, #14213d 0%, #070b14 70%);
+    }
+    body[data-theme="azure"] .card{background:linear-gradient(180deg,#111b33,#0b1224)}
+    body[data-theme="azure"] .board{background:
+      radial-gradient(680px 300px at 20% 10%, rgba(96,165,255,.20), transparent 70%),
+      radial-gradient(480px 260px at 80% 90%, rgba(14,165,233,.14), transparent 70%),
+      #081120}
+
+    body[data-theme="obsidian"]{ --bg:#0c0d15; --surface:#141627; --text:#e7e9ee; --muted:#a6aec5; --primary:#6ae0ff; --border: rgba(255,255,255,.10); background: var(--bg); }
+    body[data-theme="aurora"]{ --bg:#041716; --surface:#0c2322; --text:#e9fbf9; --muted:#9fd0c9; --primary:#58e6c0; --border: rgba(255,255,255,.08); background: var(--bg); }
+    body[data-theme="solar"]{ --bg:#fff8ef; --surface:#fff1df; --text:#1d1a14; --muted:#7b6f5b; --primary:#ff8c42; --border: rgba(0,0,0,.08); background: var(--bg); }
+    body[data-theme="nord"]{ --bg:#0b1116; --surface:#111a22; --text:#e6eef7; --muted:#a8c1d9; --primary:#7aa2f7; --border: rgba(255,255,255,.08); background: var(--bg); }
+    body[data-theme="midnight"]{ --bg:#060607; --surface:#101012; --text:#f1f1f5; --muted:#b8b8c3; --primary:#8b5cf6; --border: rgba(255,255,255,.08); background: var(--bg); }
+    body[data-theme="grape"]{ --bg:#12071a; --surface:#1a0d24; --text:#f7ecff; --muted:#cdb4e8; --primary:#c084fc; --border: rgba(255,255,255,.10); background: var(--bg); }
+    body[data-theme="retro"]{ --bg:#f3efe4; --surface:#eee7d8; --text:#242016; --muted:#6b634e; --primary:#2fbf71; --border: rgba(0,0,0,.10); background: var(--bg); }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, "Helvetica Neue", Arial;
+      color:var(--text); background:var(--bg);
+      display:flex; align-items:center; justify-content:center; padding:20px;
+      transition: background .25s ease, color .25s ease;
+    }
+    .app{width:min(980px,100%)}
+
+    /* HEADER */
+    header{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px}
+    .title{display:flex; align-items:center; gap:10px}
+    .title h1{font-size:clamp(18px,2.6vw,26px); margin:0; font-weight:800; letter-spacing:.3px}
+    .title .hint{color:var(--muted); font-size:12px}
+    .actions{display:flex; gap:8px}
+
+    /* BUTTONS */
+    .iconbtn{height:40px; min-width:40px; padding:0 10px; display:grid; place-items:center; border-radius:12px; border:1.5px solid var(--border); background:var(--surface); box-shadow:var(--shadow); cursor:pointer; color:var(--text); font-weight:900; font-size:16px; line-height:1}
+    .iconbtn:hover{filter:brightness(1.06)}
+    .iconbtn:focus-visible{outline:2px solid var(--primary); outline-offset:2px}
+    .iconbtn[disabled], .iconbtn[aria-disabled="true"]{opacity:.5; pointer-events:none; filter:none}
+
+    .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border-radius:12px; border:1px solid var(--border); background:var(--primary); color:#061021; font-weight:800; letter-spacing:.2px; cursor:pointer}
+
+    /* CARD */
+    .card{background:var(--surface); border:1px solid var(--border); border-radius:16px; box-shadow:var(--shadow); padding:12px}
+
+    /* CONTROLS */
+    .controls{display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap:10px; align-items:end}
+    .field{display:flex; flex-direction:column; gap:6px}
+    .label{font-size:12px; color:var(--muted)}
+    select, input[type="number"], input[type="text"]{appearance:none; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:transparent; color:var(--text); outline:none}
+    input::placeholder{color:var(--muted)}
+    .qty{display:flex; gap:6px}
+    .qty input{flex:1}
+    .tiny{font-size:12px; color:var(--muted)}
+
+    /* BOARD */
+    .board{position:relative; height:300px; width:100%; margin-top:10px; border-radius:14px; background:linear-gradient(160deg, rgba(255,255,255,.04), transparent 60%), rgba(0,0,0,.12); border:1px solid var(--border); overflow:hidden}
+    .dice-area{position:absolute; inset:0; padding:14px; display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:10px}
+
+    /* DICE */
+    .die{ position:relative; display:grid; place-items:center; user-select:none; }
+    .badge{position:absolute; bottom:-6px; right:-6px; background:rgba(0,0,0,.45); color:#fff; font-size:10px; padding:3px 6px; border-radius:999px; border:1px solid rgba(255,255,255,.25)}
+    body.compact .die{ transform: scale(.9); }
+
+    /* d6 (pips) */
+    .die.d6{ width:56px; height:56px; background:linear-gradient(145deg,#fff,#e9e9e9); border-radius:10px; border:1px solid #d2d2d2; box-shadow: 0 8px 16px rgba(0,0,0,.28), inset 0 2px 6px rgba(0,0,0,.08)}
+    .pips{display:grid; grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); width:100%; height:100%; padding:8px; gap:5px}
+    .pip{border-radius:50%; width:100%; height:100%; background:#111; box-shadow: inset 0 -1px 0 rgba(255,255,255,.35)}
+
+    /* Numeric dice */
+    .die.numeric{ width:58px; height:58px; border-radius:11px; background:linear-gradient(145deg,#f3f4f6,#d9dde3); color:#0f172a; border:1px solid rgba(0,0,0,.14); box-shadow: 0 8px 16px rgba(0,0,0,.28), inset 0 2px 6px rgba(0,0,0,.08); font-weight:900; font-size:20px}
+
+    /* Rolling */
+    .rolling{ animation: tumble .75s cubic-bezier(.2,.9,.1,1) infinite; filter: drop-shadow(0 14px 18px rgba(0,0,0,.4)); }
+    @keyframes tumble{ 0%{ transform: translateY(0) rotate(0deg)} 40%{ transform: translateY(-6px) rotate(90deg)} 80%{ transform: translateY(0) rotate(180deg)} 100%{ transform: translateY(-2px) rotate(360deg)} }
+
+    /* SUMMARY */
+    .summary{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:8px}
+    .tot{font-size:20px; font-weight:900}
+    .line{color:var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace; font-size:13px; white-space:nowrap; overflow:auto}
+
+    /* HISTORY (togglable) */
+    .history{margin-top:12px; display:none}
+    .history.visible{display:block}
+    .history h3{font-size:13px; color:var(--muted); margin:0 0 6px 0}
+    .history ul{list-style:none; margin:0; padding:0; display:grid; gap:6px}
+    .history li{padding:8px 10px; border-radius:10px; background:rgba(255,255,255,.04); border:1px solid var(--border); display:flex; gap:10px; align-items:center; justify-content:space-between}
+    .small{color:var(--muted); font-size:12px}
+
+    /* SETTINGS PANEL */
+    .overlay{position:fixed; inset:0; background:rgba(0,0,0,.35); display:none}
+    .overlay.open{display:block}
+    .panel{position:absolute; right:0; top:0; height:100%; width:min(480px,100%); background:var(--surface); border-left:1px solid var(--border); box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; gap:14px}
+    .panel h2{margin:0; font-size:18px}
+    .row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+    .toggle{display:flex; align-items:center; gap:8px}
+    .switch{position:relative; width:48px; height:28px; border-radius:999px; background:rgba(255,255,255,.15); border:1px solid var(--border); cursor:pointer}
+    .switch::after{content:""; position:absolute; top:2px; left:2px; width:22px; height:22px; background:#fff; border-radius:50%; transition: transform .2s ease}
+    .switch[data-on="1"]{background:var(--primary)}
+    .switch[data-on="1"]::after{ transform: translateX(18px); }
+
+    .theme-list{display:grid; grid-template-columns: repeat(9, 1fr); gap:8px}
+    .dot{height:34px; border-radius:10px; border:1px solid var(--border); cursor:pointer}
+    .dot[data-name="classic"]{background:radial-gradient(120px 80px at 70% -10%, #1d1f3a, #05060e)}
+    .dot[data-name="ocean"]{background:radial-gradient(120px 80px at 50% -10%, #0e2240, #061322)}
+    .dot[data-name="azure"]{background:linear-gradient(120deg,#14213d,#070b14)}
+    .dot[data-name="obsidian"]{background:linear-gradient(120deg,#15182b,#0c0d15)}
+    .dot[data-name="aurora"]{background:linear-gradient(120deg,#0c2322,#041716)}
+    .dot[data-name="solar"]{background:linear-gradient(120deg,#fff1df,#fff8ef)}
+    .dot[data-name="nord"]{background:linear-gradient(120deg,#111a22,#0b1116)}
+    .dot[data-name="midnight"]{background:linear-gradient(120deg,#101012,#060607)}
+    .dot[data-name="grape"]{background:linear-gradient(120deg,#1a0d24,#12071a)}
+    .dot[data-name="retro"]{background:linear-gradient(120deg,#eee7d8,#f3efe4)}
+
+    @media (max-width: 860px){
+      .controls{grid-template-columns: 1fr 1fr auto}
+      .summary{flex-direction:column; align-items:flex-start}
+    }
+  </style>
+</head>
+<body data-theme="classic">
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1 id="titleText">Brasseur de dés</h1>
+        <div class="hint" id="hintText">Entrée pour relancer</div>
+      </div>
+      <div class="actions">
+        <button id="langToggle" class="iconbtn" title="Basculer en English" aria-label="Basculer en English">FR</button>
+        <button id="openSettings" class="iconbtn" title="Paramètres" aria-label="Paramètres">⚙️</button>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="controls">
+        <div class="field">
+          <div class="label" id="labelType">Type</div>
+          <select id="dieType">
+            <option value="4">d4</option>
+            <option value="6" selected>d6</option>
+            <option value="8">d8</option>
+            <option value="10">d10</option>
+            <option value="12">d12</option>
+            <option value="20">d20</option>
+            <option value="100">d100</option>
+            <option value="custom">Personnalisé…</option>
+          </select>
+        </div>
+        <div id="customWrap" class="field" style="display:none">
+          <div class="label" id="labelFaces">Faces (perso)</div>
+          <input type="number" min="2" max="999" id="customSides" placeholder="ex: 30" />
+        </div>
+        <div class="field">
+          <div class="label" id="labelCount">Nombre</div>
+          <div class="qty">
+            <button id="minus" class="iconbtn" title="Retirer un dé" aria-label="Retirer un dé" type="button">–</button>
+            <input id="qty" type="number" inputmode="numeric" min="1" max="50" step="1" value="3" />
+            <button id="plus" class="iconbtn" title="Ajouter un dé" aria-label="Ajouter un dé" type="button">+</button>
+          </div>
+        </div>
+        <div class="field">
+          <div class="label" id="labelMod">Mod</div>
+          <input id="modifier" type="number" step="1" value="0" />
+        </div>
+        <div class="field">
+          <button id="rollBtn" class="btn" type="button">🎲 Brasser</button>
+        </div>
+      </div>
+
+      <div class="board">
+        <div id="diceArea" class="dice-area" aria-live="polite" aria-label="Zone de lancer de dés"></div>
+      </div>
+
+      <div class="summary" id="summary">
+        <div class="tot" id="total">Total: 0</div>
+        <div class="line" id="details">Aucun lancer pour l'instant.</div>
+      </div>
+
+      <div class="history" id="historyWrap">
+        <div class="row" style="margin-bottom:6px">
+          <h3 id="historyTitle" style="margin:0">Historique</h3>
+          <div class="row" style="gap:6px">
+            <button id="clearHistory" class="iconbtn" title="Effacer" type="button">🗑️</button>
+          </div>
+        </div>
+        <ul id="history"></ul>
+      </div>
+    </section>
+  </div>
+
+  <!-- SETTINGS PANEL -->
+  <div id="settings" class="overlay" aria-hidden="true">
+    <div class="panel" role="dialog" aria-modal="true" aria-label="Paramètres">
+      <div class="row">
+        <h2 id="settingsTitle">Paramètres</h2>
+        <button id="closeSettings" class="iconbtn" title="Fermer" type="button">✖️</button>
+      </div>
+
+      <div class="field">
+        <div class="label" id="labelTheme">Thème</div>
+        <div class="theme-list">
+          <div class="dot" data-name="classic" title="Classique (original)"></div>
+          <div class="dot" data-name="ocean" title="Ocean"></div>
+          <div class="dot" data-name="azure" title="Azure"></div>
+          <div class="dot" data-name="obsidian" title="Obsidian"></div>
+          <div class="dot" data-name="aurora" title="Aurora"></div>
+          <div class="dot" data-name="solar" title="Solar"></div>
+          <div class="dot" data-name="nord" title="Nord"></div>
+          <div class="dot" data-name="midnight" title="Midnight"></div>
+          <div class="dot" data-name="grape" title="Grape"></div>
+          <div class="dot" data-name="retro" title="Retro"></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label" id="labelDisplay">Affichage</div>
+        <div class="row">
+          <div class="toggle"><span class="tiny" id="labHistory">Historique</span><div id="t_history" class="switch" role="switch" aria-checked="false" tabindex="0"></div></div>
+          <div class="toggle"><span class="tiny" id="labDetails">Détails</span><div id="t_details" class="switch" role="switch" aria-checked="true" tabindex="0" data-on="1"></div></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="label" id="labelBehavior">Comportement</div>
+        <div class="row">
+          <div class="toggle"><span class="tiny" id="labAnim">Animation</span><div id="t_anim" class="switch" role="switch" aria-checked="true" tabindex="0" data-on="1"></div></div>
+          <div class="toggle"><span class="tiny" id="labCompact">Compact</span><div id="t_compact" class="switch" role="switch" aria-checked="false" tabindex="0"></div></div>
+          <div class="toggle"><span class="tiny" id="labSound">Son</span><div id="t_sound" class="switch" role="switch" aria-checked="true" tabindex="0" data-on="1"></div></div>
+        </div>
+      </div>
+
+      <div class="tiny" id="settingsNote">Les réglages sont enregistrés automatiquement pour la prochaine visite.</div>
+    </div>
+  </div>
+
+  <script>
+    // --- Utils ---
+    const $ = (sel, p=document) => p.querySelector(sel);
+    const $$ = (sel, p=document) => Array.from(p.querySelectorAll(sel));
+
+    // Elements
+    const dieType = $('#dieType');
+    const customWrap = $('#customWrap');
+    const customSides = $('#customSides');
+    const qty = $('#qty');
+    const minus = $('#minus');
+    const plus = $('#plus');
+    const modifier = $('#modifier');
+    const rollBtn = $('#rollBtn');
+
+    const diceArea = $('#diceArea');
+    const totalOut = $('#total');
+    const detailsOut = $('#details');
+    const historyWrap = $('#historyWrap');
+    const historyList = $('#history');
+    const clearHistory = $('#clearHistory');
+
+    const openSettings = $('#openSettings');
+    const closeSettings = $('#closeSettings');
+    const settingsOverlay = $('#settings');
+    const langToggle = $('#langToggle');
+
+    // switches
+    const s_history = $('#t_history');
+    const s_details = $('#t_details');
+    const s_anim = $('#t_anim');
+    const s_compact = $('#t_compact');
+    const s_sound = $('#t_sound');
+
+    let history = [];
+
+    // --- i18n ---
+    const i18n = {
+      fr: {
+        appTitle: 'Brasseur de dés',
+        hint: 'Entrée pour relancer',
+        settings: 'Paramètres',
+        labels: { type:'Type', faces:'Faces (perso)', count:'Nombre', mod:'Mod', theme:'Thème', display:'Affichage', behavior:'Comportement' },
+        toggles: { history:'Historique', details:'Détails', animation:'Animation', compact:'Compact', sound:'Son' },
+        roll: 'Brasser',
+        total: 'Total',
+        noRoll: "Aucun lancer pour l'instant.",
+        history: 'Historique',
+        clearTitle: 'Effacer',
+        openSettingsTitle: 'Paramètres',
+        closeTitle: 'Fermer',
+        diceAreaAria: 'Zone de lancer de dés',
+        placeholderFaces: 'ex: 30',
+        settingsNote: 'Les réglages sont enregistrés automatiquement pour la prochaine visite.',
+        confirmClear: "Supprimer l'historique des lancers ?",
+        alertCustomSides: 'Indiquez un nombre de faces (≥2) pour le dé personnalisé.',
+        themeTitles: { classic:'Classique (original)', ocean:'Ocean', azure:'Azure', obsidian:'Obsidian', aurora:'Aurora', solar:'Solar', nord:'Nord', midnight:'Midnight', grape:'Grape', retro:'Retro' },
+        csv: { file:'historique-des.csv', cols:['horodatage','notation','faces','nb_dés','résultats','modificateur','total_sans_mod','total_final'] },
+        htmlTitle: 'Simulateur de dés — Bleu+ Minimal',
+        langToggleTitle: 'Basculer en English'
+      },
+      en: {
+        appTitle: 'Dice Roller',
+        hint: 'Press Enter to roll again',
+        settings: 'Settings',
+        labels: { type:'Type', faces:'Faces (custom)', count:'Count', mod:'Mod', theme:'Theme', display:'Display', behavior:'Behavior' },
+        toggles: { history:'History', details:'Details', animation:'Animation', compact:'Compact', sound:'Sound' },
+        roll: 'Roll',
+        total: 'Total',
+        noRoll: 'No rolls yet.',
+        history: 'History',
+        clearTitle: 'Clear',
+        openSettingsTitle: 'Settings',
+        closeTitle: 'Close',
+        diceAreaAria: 'Dice rolling area',
+        placeholderFaces: 'e.g., 30',
+        settingsNote: 'Settings are saved for your next visit.',
+        confirmClear: 'Clear roll history?',
+        alertCustomSides: 'Enter a valid number of faces (≥2) for the custom die.',
+        themeTitles: { classic:'Classic (original)', ocean:'Ocean', azure:'Azure', obsidian:'Obsidian', aurora:'Aurora', solar:'Solar', nord:'Nord', midnight:'Midnight', grape:'Grape', retro:'Retro' },
+        csv: { file:'dice-history.csv', cols:['timestamp','notation','faces','dice_count','results','modifier','subtotal','total_final'] },
+        htmlTitle: 'Dice Roller — Blue Minimal',
+        langToggleTitle: 'Switch to Français'
+      }
+    };
+
+    const defaultPrefs = {
+      type: '6', custom:'', qty:3, mod:0,
+      theme: 'classic',
+      showHistory: false,
+      showDetails: true,
+      animate: true,
+      compact: false,
+      sound: true,
+      lang: null
+    };
+
+    function loadPrefs(){
+      try{ return {...defaultPrefs, ...(JSON.parse(localStorage.getItem('dice-prefs-min')||'{}'))}; }catch{return {...defaultPrefs}}
+    }
+    function savePrefs(){ localStorage.setItem('dice-prefs-min', JSON.stringify(prefs)); }
+
+    let prefs = loadPrefs();
+    if(!prefs.lang){ prefs.lang = (navigator.language||'en').toLowerCase().startsWith('fr') ? 'fr' : 'en'; savePrefs(); }
+
+    function resolveLang(){ return (prefs.lang==='fr'||prefs.lang==='en') ? prefs.lang : 'en'; }
+
+    // Apply prefs to UI
+    function applyPrefs(){
+      dieType.value = prefs.type;
+      if(prefs.type==='custom'){ customWrap.style.display='block'; } else { customWrap.style.display='none'; }
+      customSides.value = prefs.custom || '';
+      qty.value = prefs.qty;
+      modifier.value = prefs.mod;
+
+      document.body.setAttribute('data-theme', prefs.theme);
+      document.body.classList.toggle('compact', !!prefs.compact);
+
+      s_history.dataset.on = prefs.showHistory? '1':'0';
+      s_history.setAttribute('aria-checked', String(!!prefs.showHistory));
+      historyWrap.classList.toggle('visible', !!prefs.showHistory);
+
+      s_details.dataset.on = prefs.showDetails? '1':'0';
+      s_details.setAttribute('aria-checked', String(!!prefs.showDetails));
+      $('#summary').style.display = prefs.showDetails? '' : 'none';
+
+      s_anim.dataset.on = prefs.animate? '1':'0';
+      s_anim.setAttribute('aria-checked', String(!!prefs.animate));
+
+      s_compact.dataset.on = prefs.compact? '1':'0';
+      s_compact.setAttribute('aria-checked', String(!!prefs.compact));
+
+      applyLang();
+      updateHistoryControls();
+    }
+
+    function setLangButtonUI(lang){
+      langToggle.textContent = lang.toUpperCase();
+      const L = i18n[lang];
+      langToggle.title = L.langToggleTitle;
+      langToggle.setAttribute('aria-label', L.langToggleTitle);
+    }
+
+    function applyLang(){
+      const lang = resolveLang();
+      const L = i18n[lang];
+      document.documentElement.lang = lang;
+      document.title = L.htmlTitle;
+
+      // header
+      $('#titleText').textContent = L.appTitle;
+      $('#hintText').textContent = L.hint;
+      openSettings.title = L.openSettingsTitle; openSettings.setAttribute('aria-label', L.openSettingsTitle);
+      $('#settingsTitle').textContent = L.settings;
+      setLangButtonUI(lang);
+
+      // labels
+      $('#labelType').textContent = L.labels.type;
+      $('#labelFaces').textContent = L.labels.faces;
+      $('#labelCount').textContent = L.labels.count;
+      $('#labelMod').textContent = L.labels.mod;
+      customSides.placeholder = L.placeholderFaces;
+
+      // board aria
+      diceArea.setAttribute('aria-label', L.diceAreaAria);
+
+      // summary
+      const currentTotal = (totalOut.textContent.match(/[0-9]+/)||['0'])[0];
+      totalOut.textContent = `${L.total}: ${currentTotal}`;
+      if(history.length===0) detailsOut.textContent = L.noRoll;
+
+      // history section
+      $('#historyTitle').textContent = L.history;
+      clearHistory.title = L.clearTitle;
+
+      // control buttons titles
+      minus.title = lang==='fr' ? 'Retirer un dé' : 'Remove one die';
+      minus.setAttribute('aria-label', minus.title);
+      plus.title = lang==='fr' ? 'Ajouter un dé' : 'Add one die';
+      plus.setAttribute('aria-label', plus.title);
+
+      // settings labels
+      $('#labelTheme').textContent = L.labels.theme;
+      $('#labelDisplay').textContent = L.labels.display;
+      $('#labelBehavior').textContent = L.labels.behavior;
+      $('#settingsNote').textContent = L.settingsNote;
+
+      // toggle captions
+      $('#labHistory').textContent = L.toggles.history;
+      $('#labDetails').textContent = L.toggles.details;
+      $('#labAnim').textContent = L.toggles.animation;
+      $('#labCompact').textContent = L.toggles.compact;
+      $('#labSound').textContent = L.toggles.sound;
+
+      // theme dot titles
+      $$('.theme-list .dot').forEach(d=>{
+        const name = d.dataset.name; const t = L.themeTitles[name]; if(t) d.title = t;
+      });
+    }
+
+    function getSides(){
+      if(dieType.value === 'custom'){
+        const v = parseInt(customSides.value, 10);
+        if(!Number.isFinite(v) || v < 2){
+          alert(i18n[resolveLang()].alertCustomSides || 'Enter a valid number of faces (≥2)');
+          customSides.focus();
+          throw new Error('Invalid custom sides');
+        }
+        return v;
+      }
+      return parseInt(dieType.value, 10);
+    }
+
+    function secureRandomInt(max){ const buf = new Uint32Array(1); window.crypto.getRandomValues(buf); return buf[0] % max; }
+    function rollDie(sides){ return secureRandomInt(sides) + 1; }
+
+    function makeD6(value){
+      const die = document.createElement('div');
+      die.className = 'die d6';
+      const grid = document.createElement('div'); grid.className = 'pips';
+      const layout = pipsLayout(value);
+      for(let i=1;i<=9;i++){
+        const cell = document.createElement('div');
+        if(layout.has(i)){
+          const dot = document.createElement('div'); dot.className = 'pip'; cell.appendChild(dot);
+        }
+        grid.appendChild(cell);
+      }
+      die.appendChild(grid);
+      const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = 'd6'; die.appendChild(badge);
+      badge.style.display = 'block';
+      return die;
+    }
+    function pipsLayout(n){
+      const sets = {1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
+      return new Set(sets[n] || [5]);
+    }
+
+    function makeNumericDie(sides, value){
+      const die = document.createElement('div'); die.className = 'die numeric';
+      const face = document.createElement('div'); face.className='face'; face.textContent = value; die.appendChild(face);
+      const badge = document.createElement('div'); badge.className = 'badge'; badge.textContent = 'd'+sides; die.appendChild(badge);
+      badge.style.display = 'block';
+      return die;
+    }
+    function createDieEl(sides, value){ return sides===6? makeD6(value) : makeNumericDie(sides, value); }
+
+    const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+
+    function addHistory(entry){ history.unshift(entry); renderHistory(); }
+
+    function updateHistoryControls(){
+      const disabled = history.length === 0;
+      clearHistory.disabled = disabled;
+    }
+
+    function renderHistory(){
+      historyList.innerHTML = '';
+      history.slice(0, 20).forEach(h => {
+        const li = document.createElement('li');
+        const left = document.createElement('div');
+        const right = document.createElement('div');
+        left.innerHTML = `<strong>${h.notation}</strong> → ${h.totalFinal}`;
+        right.className = 'small';
+        right.textContent = `${h.values.join(', ')}${h.mod !== 0 ? `  (mod ${h.mod >= 0 ? '+' : ''}${h.mod})` : ''}  •  ${new Date(h.when).toLocaleTimeString()}`;
+        li.appendChild(left); li.appendChild(right); historyList.appendChild(li);
+      });
+      updateHistoryControls();
+    }
+
+    // Efface tout l'historique (mutation in-place + reset UI)
+    function clearAllHistory(){
+      history.length = 0;
+      renderHistory();
+      const L = i18n[resolveLang()];
+      totalOut.textContent = `${L.total}: 0`;
+      detailsOut.textContent = L.noRoll;
+    }
+
+    // Helper pour la notation, utile aux tests
+    function buildNotation(count, sides, mod){
+      return `${count}d${sides}${mod? (mod>0?`+${mod}`:`${mod}`):''}`;
+    }
+
+    function makeCSVBlob(rows){
+      const lang = resolveLang();
+      const header = i18n[lang].csv.cols;
+      const lines = [header.join(',')];
+      rows.slice().reverse().forEach(h => {
+        const cols = [ new Date(h.when).toISOString(), h.notation, h.sides, h.count, '"['+h.values.join(';')+']"', h.mod, h.total, h.totalFinal ];
+        lines.push(cols.join(','));
+      });
+      const blob = new Blob([lines.join('\n')], {type:'text/csv'});
+      return URL.createObjectURL(blob);
+    }
+
+    // ---- Audio (petit son au lancer) ----
+    const AudioFx = {
+      ctx: null,
+      ensure(){ if(!this.ctx){ try{ this.ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch{} } return this.ctx; },
+      /** simple "tchouk" */
+      async roll(count=1){
+        if(!prefs.sound) return;
+        const ctx = this.ensure(); if(!ctx) return;
+        const now = ctx.currentTime;
+        for(let i=0;i<Math.min(5,count);i++){
+          const t = now + i*0.05;
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.type = 'triangle';
+          o.frequency.setValueAtTime(220, t);
+          o.frequency.exponentialRampToValueAtTime(140, t+0.09);
+          g.gain.setValueAtTime(0.0001, t);
+          g.gain.exponentialRampToValueAtTime(0.25, t+0.01);
+          g.gain.exponentialRampToValueAtTime(0.0001, t+0.12);
+          o.connect(g); g.connect(ctx.destination);
+          o.start(t); o.stop(t+0.14);
+        }
+        try{ if(ctx.state==='suspended') await ctx.resume(); }catch{}
+      }
+    };
+
+    async function roll(){
+      const lang = resolveLang();
+      const L = i18n[lang];
+      const sides = getSides();
+      const count = Math.min(50, Math.max(1, parseInt(qty.value, 10) || 1));
+      qty.value = String(count);
+      const mod = parseInt(modifier.value, 10) || 0;
+
+      diceArea.innerHTML = '';
+      if(prefs.animate){
+        for(let i=0;i<count;i++){
+          const dieEl = createDieEl(sides, '?');
+          dieEl.classList.add('rolling');
+          dieEl.style.transform = `rotate(${secureRandomInt(360)}deg)`;
+          diceArea.appendChild(dieEl);
+        }
+        await sleep(650 + secureRandomInt(400));
+      }
+
+      const values = []; let total = 0;
+      for(let i=0;i<count;i++){ const v = rollDie(sides); values.push(v); total += v; }
+
+      diceArea.innerHTML = '';
+      values.forEach(v => diceArea.appendChild(createDieEl(sides, v)));
+
+      const notation = buildNotation(count, sides, mod);
+      const totalFinal = total + mod;
+      totalOut.textContent = `${L.total}: ${totalFinal}`;
+      detailsOut.textContent = `${notation} → [ ${values.join(', ')} ] = ${total}${mod? (mod>0?` + ${mod}`:` - ${Math.abs(mod)}`):''} = ${totalFinal}`;
+
+      addHistory({ when: Date.now(), notation, sides, count, values, mod, total, totalFinal });
+
+      AudioFx.roll(count);
+
+      prefs.type = dieType.value; prefs.custom = customSides.value; prefs.qty = count; prefs.mod = mod; savePrefs();
+    }
+
+    // UI listeners
+    dieType.addEventListener('change', () => { const isCustom = dieType.value==='custom'; customWrap.style.display = isCustom? 'block':'none'; prefs.type = dieType.value; savePrefs(); });
+    [customSides, qty, modifier].forEach(el => el.addEventListener('input', ()=>savePrefs()));
+    plus.addEventListener('click', () => { qty.value = String(Math.min(50, (parseInt(qty.value,10)||1) + 1)); savePrefs(); });
+    minus.addEventListener('click', () => { qty.value = String(Math.max(1, (parseInt(qty.value,10)||1) - 1)); savePrefs(); });
+
+    rollBtn.addEventListener('click', roll);
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); roll(); }});
+
+    clearHistory.addEventListener('click', () => {
+      const L = i18n[resolveLang()];
+      if (confirm(L.confirmClear)) {
+        clearAllHistory();
+      }
+    });
+
+    // SETTINGS open/close
+    openSettings.addEventListener('click', ()=>{ settingsOverlay.classList.add('open'); settingsOverlay.setAttribute('aria-hidden','false'); });
+    closeSettings.addEventListener('click', ()=>{ settingsOverlay.classList.remove('open'); settingsOverlay.setAttribute('aria-hidden','true'); });
+    settingsOverlay.addEventListener('click', (e)=>{ if(e.target === settingsOverlay){ settingsOverlay.classList.remove('open'); settingsOverlay.setAttribute('aria-hidden','true'); } });
+
+    // Switch helpers
+    function toggleSwitch(el, key){ const on = el.dataset.on==='1'; el.dataset.on = on? '0':'1'; el.setAttribute('aria-checked', on? 'false':'true'); prefs[key] = !on; savePrefs(); applyPrefs(); }
+    ;[['t_history','showHistory'],['t_details','showDetails'],['t_anim','animate'],['t_compact','compact'],['t_sound','sound']].forEach(([id,key])=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.addEventListener('click', ()=>toggleSwitch(el,key));
+      el.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); toggleSwitch(el,key); }});
+    });
+
+    // Theme dots
+    $$('.dot').forEach(d => d.addEventListener('click', ()=>{ prefs.theme = d.dataset.name; savePrefs(); applyPrefs(); }));
+
+    // Lang toggle
+    langToggle.addEventListener('click', ()=>{ prefs.lang = resolveLang()==='fr' ? 'en' : 'fr'; savePrefs(); applyPrefs(); });
+
+    // --- Self tests (non bloquants) ---
+    (function runSelfTests(){
+      try{
+        // Notation helper
+        console.assert(buildNotation(3,6,2)==='3d6+2', 'Notation + mod');
+        console.assert(buildNotation(2,10,-1)==='2d10-1', 'Notation - mod');
+        console.assert(buildNotation(1,20,0)==='1d20', 'Notation sans mod');
+        console.assert(buildNotation(5,100,0)==='5d100', 'Notation d100');
+        // Pips layout
+        const six = pipsLayout(6); [1,3,4,6,7,9].forEach(p=>console.assert(six.has(p), 'pips 6 face manquante: '+p));
+        const one = pipsLayout(1); console.assert(one.has(5) && one.size===1, 'pips 1 incorrect');
+        const two = pipsLayout(2); [1,9].forEach(p=>console.assert(two.has(p), 'pips 2 face manquante: '+p));
+        // Bornes tirages
+        for(let i=0;i<50;i++){ const v = rollDie(20); console.assert(v>=1 && v<=20, 'rollDie hors bornes'); }
+        // CSV blob
+        const url1 = makeCSVBlob([{when:Date.now(), notation:'2d6', sides:6, count:2, values:[3,4], mod:0, total:7, totalFinal:7}]);
+        console.assert(typeof url1 === 'string' && url1.startsWith('blob:'), 'CSV blob invalide (1)');
+        const url2 = makeCSVBlob([
+          {when:Date.now(), notation:'1d4', sides:4, count:1, values:[1], mod:0, total:1, totalFinal:1},
+          {when:Date.now(), notation:'1d20+3', sides:20, count:1, values:[17], mod:3, total:17, totalFinal:20}
+        ]);
+        console.assert(typeof url2 === 'string' && url2.startsWith('blob:'), 'CSV blob invalide (2)');
+        // Historique: activation/désactivation corbeille
+        history = [{when:Date.now(), notation:'1d6', sides:6, count:1, values:[4], mod:0, total:4, totalFinal:4}];
+        renderHistory();
+        console.assert(clearHistory.disabled===false, 'Corbeille devrait être activée lorsque historique > 0');
+        history = []; renderHistory();
+        console.assert(clearHistory.disabled===true, 'Corbeille devrait être désactivée lorsque historique = 0');
+        // Clear action test
+        history = [{when:Date.now(), notation:'2d6', sides:6, count:2, values:[1,6], mod:0, total:7, totalFinal:7}];
+        renderHistory();
+        clearAllHistory();
+        console.assert(history.length===0 && historyList.children.length===0, 'Clear button should empty history list');
+        const Ltest = i18n[resolveLang()];
+        console.assert(totalOut.textContent.trim().endsWith(': 0'), 'Total should reset to 0 after clear');
+        console.assert(detailsOut.textContent === Ltest.noRoll, 'Details should show noRoll after clear');
+        // UI toggle test (history visibility)
+        const prev = !!prefs.showHistory;
+        toggleSwitch(s_history, 'showHistory');
+        console.assert(historyWrap.classList.contains('visible') === !prev, 'Switch should toggle history visibility');
+        toggleSwitch(s_history, 'showHistory');
+        // createDieEl classes
+        const test6 = createDieEl(6,3); console.assert(test6.classList.contains('d6'), 'd6 element should have d6 class');
+        const test8 = createDieEl(8,5); console.assert(test8.classList.contains('numeric'), 'd8 element should be numeric class');
+        // Langue
+        const r = resolveLang(); console.assert(r==='fr' || r==='en', 'Langue non supportée');
+      }catch(e){ console.warn('Self-tests: problème détecté', e); }
+    })();
+
+    // Init
+    applyPrefs();
+    renderHistory();
+  </script>
+</body>
+</html>
